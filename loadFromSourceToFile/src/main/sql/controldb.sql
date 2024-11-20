@@ -35,5 +35,3 @@ create table if not exists logs(
     note varchar(1000),
     created_at timestamp default current_timestamp
     );
-
- Đây là database để tạo và lưu barng log
