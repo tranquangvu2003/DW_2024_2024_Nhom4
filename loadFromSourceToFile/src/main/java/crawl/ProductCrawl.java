@@ -1,3 +1,5 @@
+package crawl;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
@@ -5,10 +7,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.BufferedReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.time.LocalDate;
@@ -129,24 +128,28 @@ public class ProductCrawl {
         return productList;
     }
 
+
     // Lưu dữ liệu vào file CSV
     public static void saveDataToCSV(List<String[]> data) {
         // Lấy thời gian hiện tại (bao gồm giờ, phút, giây)
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
         String currentTime = dtf.format(LocalDateTime.now());
-        String filePath = "Products_" + currentTime + ".csv";  // Tên file chứa thời gian hiện tại
+        String filePath = currentTime + ".csv";  // Tên file chứa thời gian hiện tại
 
-        try (FileWriter writer = new FileWriter(filePath)) {
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(filePath), "UTF-8")) {
+            // Thêm BOM để Excel nhận diện UTF-8
+            writer.write('\uFEFF');
+
             String[] header = {"id", "sku", "link-href", "name", "origin_price", "discount_percent", "sale_price", "img-src", "rating", "review_count", "brand_name", "specification", "date"};
 
             // Ghi header vào file CSV
-            writer.append(String.join(",", header));
-            writer.append("\n");
+            writer.write(String.join(",", header));
+            writer.write("\n");
 
             // Ghi dữ liệu vào file CSV
             for (String[] rowData : data) {
-                writer.append(String.join(",", rowData));
-                writer.append("\n");
+                writer.write(String.join(",", rowData));
+                writer.write("\n");
             }
 
             System.out.println("Dữ liệu đã được lưu vào: " + filePath);
