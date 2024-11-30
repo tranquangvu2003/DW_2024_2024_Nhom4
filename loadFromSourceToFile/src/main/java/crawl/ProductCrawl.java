@@ -1,5 +1,8 @@
 package crawl;
 
+import database.ConnectToDatabase;
+import entities.configs;
+import entities.db_configs;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
@@ -10,6 +13,10 @@ import org.jsoup.select.Elements;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,6 +24,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ProductCrawl {
+
+    // 1. Khởi tạo các biến lưu trữ dữ liệu config
+
+    // Biến lưu các giá trị từ bảng config
+    public static configs configs;
+
+    //Biến lưu giá trị từ bảng db_config
+    private db_configs  db_configs;
 
     // Crawl dữ liệu từ Thế Giới Di Động
     public static List<String[]> crawlDataTGDD(String url) {
@@ -128,7 +143,6 @@ public class ProductCrawl {
         return productList;
     }
 
-
     // Lưu dữ liệu vào file CSV
     public static void saveDataToCSV(List<String[]> data) {
         // Lấy thời gian hiện tại (bao gồm giờ, phút, giây)
@@ -160,6 +174,10 @@ public class ProductCrawl {
 
     // Hàm main
     public static void main(String[] args) {
+
+        loadConfig(3);
+        System.out.println("configs: "+configs);
+
         List<String> tgddUrls = List.of(
                 "https://www.thegioididong.com/laptop-acer?itm_source=trang-nganh-hang&itm_medium=quicklink",
                 "https://www.thegioididong.com/laptop-hp-compaq?itm_source=trang-nganh-hang&itm_medium=quicklink",
@@ -180,4 +198,53 @@ public class ProductCrawl {
 
         saveDataToCSV(allProducts);  // Lưu dữ liệu vào CSV
     }
-}
+
+    public static void loadConfig(int id) {
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = ConnectToDatabase.getConnect();
+            String sql = "SELECT * FROM configs WHERE id = ?";
+            preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, id);
+            resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                // Khởi tạo biến configs nếu nó đang null
+                if (configs == null) {
+                    configs = new configs();
+                }
+
+
+                // Gán các giá trị từ cơ sở dữ liệu cho các thuộc tính của configs
+                configs.setId(resultSet.getInt("id"));
+                configs.setSourcePath(resultSet.getString("source_path"));
+                configs.setBackupPath(resultSet.getString("backup_path"));
+                configs.setStagingConfig(resultSet.getInt("staging_config"));
+                configs.setDatawarehouseConfig(resultSet.getInt("datawarehouse_config"));
+                configs.setStagingTable(resultSet.getString("staging_table"));
+                configs.setDatawarehouseTable(resultSet.getString("datawarehouse_table"));
+                configs.setPeriod(resultSet.getString("period"));
+                configs.setVersion(resultSet.getString("version"));
+                configs.setIsActive(resultSet.getByte("is_active"));
+                configs.setInsertDate(resultSet.getTimestamp("insert_date"));
+                configs.setUpdateDate(resultSet.getTimestamp("update_date"));
+
+                System.out.println("Config đã được load và gán vào biến configs!");
+            } else {
+                System.out.println("Không tìm thấy config với ID = " + id);
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Lỗi khi load config: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            ConnectToDatabase.closeResources(connection, preparedStatement, resultSet);
+        }
+    }
+
+
+    }
+

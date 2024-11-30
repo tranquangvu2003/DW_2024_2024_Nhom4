@@ -59,7 +59,28 @@
             <artifactId>jsoup</artifactId>
             <version>1.17.2</version>
         </dependency>
-    </dependencies>
+            <!-- Hibernate Core -->
+            <dependency>
+                <groupId>org.hibernate</groupId>
+                <artifactId>hibernate-core</artifactId>
+                <version>5.6.15.Final</version>
+            </dependency>
+
+            <!-- Hibernate Tools -->
+            <dependency>
+                <groupId>org.hibernate</groupId>
+                <artifactId>hibernate-tools</artifactId>
+                <version>5.6.15.Final</version>
+            </dependency>
+
+            <!-- JPA API -->
+            <dependency>
+                <groupId>jakarta.persistence</groupId>
+                <artifactId>jakarta.persistence-api</artifactId>
+                <version>3.1.0</version>
+            </dependency>
+        </dependencies>
+
     <build>
         <finalName>loadFromSourceToFile</finalName>
         <plugins>
