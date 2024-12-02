@@ -30,6 +30,25 @@ public class logs {
     @Column(name = "level", nullable = true, length = 100)
     private String level;
 
+    public logs(int id, Integer configId, String status, String message, Timestamp beginDate, Timestamp updateDate, String level) {
+        this.id = id;
+        this.configId = configId;
+        this.status = status;
+        this.message = message;
+        this.beginDate = beginDate;
+        this.updateDate = updateDate;
+        this.level = level;
+    }
+
+    public logs(Integer configId, String status, String message, Timestamp beginDate, Timestamp updateDate, String level) {
+        this.configId = configId;
+        this.status = status;
+        this.message = message;
+        this.beginDate = beginDate;
+        this.updateDate = updateDate;
+        this.level = level;
+    }
+
     public int getId() {
         return id;
     }

@@ -72,4 +72,16 @@ public class db_configs {
     public void setDriverClassName(String driverClassName) {
         this.driverClassName = driverClassName;
     }
+
+    @Override
+    public String toString() {
+        return "db_configs{" +
+                "id=" + id +
+                ", dbName='" + dbName + '\'' +
+                ", url='" + url + '\'' +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", driverClassName='" + driverClassName + '\'' +
+                '}';
+    }
 }

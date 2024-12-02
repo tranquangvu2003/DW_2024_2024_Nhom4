@@ -53,7 +53,7 @@ INSERT INTO configs (source_path, backup_path, staging_config, datawarehouse_con
 VALUES
 (null, null, 1, 2, 'staging_products', 'dim_manufacturers', 60, 1, 1),
 (null, null, 1, 2, 'staging_products', 'dim_products', 60, 1, 1),
-('D:\Downloads\demoProject\loadFromSourceToFile\src\main\data', '"C:\Users\HP\Desktop\backup"', 1, 2, 'staging_products', 'dim_manufacturers', 60, 1, 1);
+('D:\\Downloads\\demoProject\\loadFromSourceToFile\\src\\main\\data', 'C:\\Users\\HP\\Desktop\\backup', 1, 2, 'staging_products', 'dim_manufacturers', 60, 1, 1);
 INSERT INTO logs (config_id, status, message, begin_date, update_date, level)
 VALUES (1, 'RE', 'Đã load thành công 13 dữ liệu manufacturers vào db_staging', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'info');
 

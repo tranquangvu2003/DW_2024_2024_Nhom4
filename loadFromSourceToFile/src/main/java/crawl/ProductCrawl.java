@@ -3,6 +3,7 @@ package crawl;
 import database.ConnectToDatabase;
 import entities.configs;
 import entities.db_configs;
+import entities.logs;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
@@ -13,10 +14,7 @@ import org.jsoup.select.Elements;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -25,15 +23,199 @@ import java.util.List;
 
 public class ProductCrawl {
 
-    // 1. Khởi tạo các biến lưu trữ dữ liệu config
+// 1. Khởi tạo các biến lưu trữ dữ liệu config
 
     // Biến lưu các giá trị từ bảng config
     public static configs configs;
 
     //Biến lưu giá trị từ bảng db_config
-    private db_configs  db_configs;
+    private static db_configs db_configs;
 
-    // Crawl dữ liệu từ Thế Giới Di Động
+
+    // Hàm main
+    public static void main(String[] args) {
+// 2. Load các giá trị từ bảng configs (có id là 3)
+
+        if (!loadConfig(3) || !loaddbConfig(3)) {
+            System.err.println("Lỗi: không thể load các giá trị từ config");
+            return;
+        }
+
+        System.out.println("configs: " + configs);
+        System.out.println("config_db: " + db_configs);
+
+
+
+// 3. Duyệt qua các liên kết
+        String tikiApiUrl = "https://tiki.vn/api/v2/products?limit=40&include=advertisement,brand,specifications,price,review&aggregations=2&trackity_id=b99a8719-716f-b1cf-6233-523360a75090&brand=17825,17826&q=laptop";
+        List<String> tgddUrls = List.of(
+                "https://www.thegioididong.com/laptop-acer?itm_source=trang-nganh-hang&itm_medium=quicklink",
+                "https://www.thegioididong.com/laptop-hp-compaq?itm_source=trang-nganh-hang&itm_medium=quicklink",
+                "https://www.thegioididong.com/laptop-dell?itm_source=trang-nganh-hang&itm_medium=quicklink"
+        );
+
+        List<String[]> allProducts = new ArrayList<>();
+// 4. Lặp qua từng liên kết lấy dữ liệu các sản phẩm
+        for (String url : tgddUrls) {
+            allProducts.addAll(crawlDataTGDD(url));
+        }
+
+        try {
+            allProducts.addAll(crawlDataTiki(tikiApiUrl));
+        } catch (IOException e) {
+            System.out.println("Lỗi khi crawl dữ liệu từ Tiki: " + e.getMessage());
+        }
+        boolean saveDataToCSV = false;
+        boolean saveDataToCSVBackup = false;
+
+// 5. Kiểm tra dữ liệu có bị trống hay không
+        if (allProducts.isEmpty()) {
+            System.out.println("Không tìm thấy dữ liệu");
+            saveLog(new logs(3, "Error", "Không tìm thấy dữ liệu của sản phẩm", new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), "INFOR"));
+
+
+        }else{
+// 6. Lưu file csv
+             saveDataToCSV = saveDataToCSV(allProducts, configs.getSourcePath());  // Lưu dữ liệu vào CSV
+             saveDataToCSVBackup = saveDataToCSV(allProducts, configs.getBackupPath());
+        }
+
+// 7. Ghi log
+        if(!saveDataToCSV){
+            saveLog(new logs(3, "Error", "Đã xảy ra lỗi khi lưu dữ liệu", new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), "Error"));
+        }else if(!saveDataToCSVBackup){
+            saveLog(new logs(3, "Error", "Đã xảy ra lỗi khi lưu file backup dữ liệu", new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), "Error"));
+        }else {
+            saveLog(new logs(3, "Succses", "Lưu dữ liệu thành công", new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), "INFOR"));
+        }
+    }
+    /*
+    == --------Các phương thức hỗ trợ-----------------------------------------------==
+     */
+
+    // Lưu dữ liệu vào file CSV với đường dẫn thư mục được chỉ định
+    public static boolean saveDataToCSV(List<String[]> data, String directoryPath) {
+        // Lấy thời gian hiện tại (bao gồm giờ, phút, giây)
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+        String currentTime = dtf.format(LocalDateTime.now());
+        String filePath = directoryPath + File.separator + currentTime + ".csv"; // Tạo đường dẫn đầy đủ cho file
+
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(filePath), "UTF-8")) {
+            // Thêm BOM để Excel nhận diện UTF-8
+            writer.write('\uFEFF');
+
+            String[] header = {"id", "sku", "link-href", "name", "origin_price", "discount_percent", "sale_price",
+                    "img-src", "rating", "review_count", "brand_name", "specification", "date"};
+
+            // Ghi header vào file CSV
+            writer.write(String.join(",", header));
+            writer.write("\n");
+
+            // Ghi dữ liệu vào file CSV
+            for (String[] rowData : data) {
+                writer.write(String.join(",", rowData));
+                writer.write("\n");
+            }
+
+            System.out.println("Dữ liệu đã được lưu vào: " + filePath);
+        } catch (IOException e) {
+            System.err.println("Lỗi khi lưu dữ liệu vào CSV: " + e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean loadConfig(int id) {
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = ConnectToDatabase.getConnect();
+            String sql = "SELECT * FROM configs WHERE id = ?";
+            preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, id);
+            resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                // Khởi tạo biến configs nếu nó đang null
+                if (configs == null) {
+                    configs = new configs();
+                }
+
+                // Gán các giá trị từ cơ sở dữ liệu cho các thuộc tính của configs
+                configs.setId(resultSet.getInt("id"));
+                configs.setSourcePath(resultSet.getString("source_path"));
+                configs.setBackupPath(resultSet.getString("backup_path"));
+                configs.setStagingConfig(resultSet.getInt("staging_config"));
+                configs.setDatawarehouseConfig(resultSet.getInt("datawarehouse_config"));
+                configs.setStagingTable(resultSet.getString("staging_table"));
+                configs.setDatawarehouseTable(resultSet.getString("datawarehouse_table"));
+                configs.setPeriod(resultSet.getString("period"));
+                configs.setVersion(resultSet.getString("version"));
+                configs.setIsActive(resultSet.getByte("is_active"));
+                configs.setInsertDate(resultSet.getTimestamp("insert_date"));
+                configs.setUpdateDate(resultSet.getTimestamp("update_date"));
+
+                System.out.println("Config đã được load và gán vào biến configs!");
+                return true; // Tải thành công
+            } else {
+                System.out.println("Không tìm thấy config với ID = " + id);
+                return false; // Không tìm thấy config
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Lỗi khi load config: " + e.getMessage());
+            e.printStackTrace();
+            return false; // Lỗi khi tải config
+        } finally {
+            ConnectToDatabase.closeResources(connection, preparedStatement, resultSet);
+        }
+    }
+
+    public static boolean loaddbConfig(int id) {
+        Connection connection = null;
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = ConnectToDatabase.getConnect();
+            String sql = "SELECT * FROM db_configs WHERE id = ?";
+            preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, id);
+            resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                // Khởi tạo biến db_configs nếu nó đang null
+                if (db_configs == null) {
+                    db_configs = new db_configs();
+                }
+
+                // Gán các giá trị từ cơ sở dữ liệu cho các thuộc tính của db_configs
+                db_configs.setId(resultSet.getInt("id"));
+                db_configs.setDbName(resultSet.getString("db_name"));
+                db_configs.setUrl(resultSet.getString("url"));
+                db_configs.setUsername(resultSet.getString("username"));
+                db_configs.setPassword(resultSet.getString("password"));
+                db_configs.setDriverClassName(resultSet.getString("driver_class_name"));
+
+                System.out.println("Config đã được load và gán vào biến db_configs!");
+                return true; // Tải thành công
+            } else {
+                System.out.println("Không tìm thấy config với ID = " + id);
+                return false; // Không tìm thấy config
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Lỗi khi load config: " + e.getMessage());
+            e.printStackTrace();
+            return false; // Lỗi khi tải config
+        } finally {
+            ConnectToDatabase.closeResources(connection, preparedStatement, resultSet);
+        }
+    }
+
+    // Phương thức hỗ trợ Crawl dữ liệu từ Thế Giới Di Động
     public static List<String[]> crawlDataTGDD(String url) {
         List<String[]> productList = new ArrayList<>();
         try {
@@ -76,7 +258,7 @@ public class ProductCrawl {
         return productList;
     }
 
-    // Crawl dữ liệu từ Tiki
+    // Phương thức hỗ trợ Crawl dữ liệu từ Tiki
     public static List<String[]> crawlDataTiki(String apiUrl) throws IOException {
         List<String[]> productList = new ArrayList<>();
         for (int page = 1; page <= 3; page++) {
@@ -143,108 +325,43 @@ public class ProductCrawl {
         return productList;
     }
 
-    // Lưu dữ liệu vào file CSV
-    public static void saveDataToCSV(List<String[]> data) {
-        // Lấy thời gian hiện tại (bao gồm giờ, phút, giây)
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
-        String currentTime = dtf.format(LocalDateTime.now());
-        String filePath = currentTime + ".csv";  // Tên file chứa thời gian hiện tại
-
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(filePath), "UTF-8")) {
-            // Thêm BOM để Excel nhận diện UTF-8
-            writer.write('\uFEFF');
-
-            String[] header = {"id", "sku", "link-href", "name", "origin_price", "discount_percent", "sale_price", "img-src", "rating", "review_count", "brand_name", "specification", "date"};
-
-            // Ghi header vào file CSV
-            writer.write(String.join(",", header));
-            writer.write("\n");
-
-            // Ghi dữ liệu vào file CSV
-            for (String[] rowData : data) {
-                writer.write(String.join(",", rowData));
-                writer.write("\n");
-            }
-
-            System.out.println("Dữ liệu đã được lưu vào: " + filePath);
-        } catch (IOException e) {
-            System.out.println("Lỗi khi lưu dữ liệu vào CSV: " + e.getMessage());
-        }
-    }
-
-    // Hàm main
-    public static void main(String[] args) {
-
-        loadConfig(3);
-        System.out.println("configs: "+configs);
-
-        List<String> tgddUrls = List.of(
-                "https://www.thegioididong.com/laptop-acer?itm_source=trang-nganh-hang&itm_medium=quicklink",
-                "https://www.thegioididong.com/laptop-hp-compaq?itm_source=trang-nganh-hang&itm_medium=quicklink",
-                "https://www.thegioididong.com/laptop-dell?itm_source=trang-nganh-hang&itm_medium=quicklink"
-        );
-
-        List<String[]> allProducts = new ArrayList<>();
-        for (String url : tgddUrls) {
-            allProducts.addAll(crawlDataTGDD(url));
-        }
-
-        String tikiApiUrl = "https://tiki.vn/api/v2/products?limit=40&include=advertisement,brand,specifications,price,review&aggregations=2&trackity_id=b99a8719-716f-b1cf-6233-523360a75090&brand=17825,17826&q=laptop";
-        try {
-            allProducts.addAll(crawlDataTiki(tikiApiUrl));
-        } catch (IOException e) {
-            System.out.println("Lỗi khi crawl dữ liệu từ Tiki: " + e.getMessage());
-        }
-
-        saveDataToCSV(allProducts);  // Lưu dữ liệu vào CSV
-    }
-
-    public static void loadConfig(int id) {
+    // Phương thức ghi log
+    public static boolean saveLog(logs log) {
         Connection connection = null;
-        PreparedStatement preparedStatement = null;
-        ResultSet resultSet = null;
+        String sql = "INSERT INTO logs ( status, message, begin_date, update_date, level,config_id) VALUES (?, ?, ?, ?, ?, ?)";
 
+        PreparedStatement preparedStatement = null;
         try {
             connection = ConnectToDatabase.getConnect();
-            String sql = "SELECT * FROM configs WHERE id = ?";
             preparedStatement = connection.prepareStatement(sql);
-            preparedStatement.setInt(1, id);
-            resultSet = preparedStatement.executeQuery();
 
-            if (resultSet.next()) {
-                // Khởi tạo biến configs nếu nó đang null
-                if (configs == null) {
-                    configs = new configs();
-                }
+            preparedStatement.setString(1, log.getStatus());
+            preparedStatement.setString(1, log.getStatus());
+            preparedStatement.setString(2, log.getMessage());
+            preparedStatement.setTimestamp(3, log.getBeginDate());
+            preparedStatement.setTimestamp(4, log.getUpdateDate());
+            preparedStatement.setString(5, log.getLevel());
+            preparedStatement.setInt(6, log.getConfigId());
 
 
-                // Gán các giá trị từ cơ sở dữ liệu cho các thuộc tính của configs
-                configs.setId(resultSet.getInt("id"));
-                configs.setSourcePath(resultSet.getString("source_path"));
-                configs.setBackupPath(resultSet.getString("backup_path"));
-                configs.setStagingConfig(resultSet.getInt("staging_config"));
-                configs.setDatawarehouseConfig(resultSet.getInt("datawarehouse_config"));
-                configs.setStagingTable(resultSet.getString("staging_table"));
-                configs.setDatawarehouseTable(resultSet.getString("datawarehouse_table"));
-                configs.setPeriod(resultSet.getString("period"));
-                configs.setVersion(resultSet.getString("version"));
-                configs.setIsActive(resultSet.getByte("is_active"));
-                configs.setInsertDate(resultSet.getTimestamp("insert_date"));
-                configs.setUpdateDate(resultSet.getTimestamp("update_date"));
-
-                System.out.println("Config đã được load và gán vào biến configs!");
-            } else {
-                System.out.println("Không tìm thấy config với ID = " + id);
-            }
-
+            preparedStatement.executeUpdate();
+            System.out.println("Log ghi thành công!");
         } catch (SQLException e) {
-            System.out.println("Lỗi khi load config: " + e.getMessage());
+            System.err.println("Lỗi khi ghi log: " + e.getMessage());
             e.printStackTrace();
+            return false;
         } finally {
-            ConnectToDatabase.closeResources(connection, preparedStatement, resultSet);
+            if (preparedStatement != null) {
+                try {
+                    preparedStatement.close();
+                } catch (SQLException e) {
+                    System.err.println("Lỗi khi đóng PreparedStatement: " + e.getMessage());
+                }
+            }
         }
+        return true;
     }
 
 
-    }
+}
 
