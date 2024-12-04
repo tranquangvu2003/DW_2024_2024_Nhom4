@@ -45,14 +45,9 @@ public class ProductCrawl {
         System.out.println("config_db: " + db_configs);
 
 
-
 // 3. Duyệt qua các liên kết
         String tikiApiUrl = "https://tiki.vn/api/v2/products?limit=40&include=advertisement,brand,specifications,price,review&aggregations=2&trackity_id=b99a8719-716f-b1cf-6233-523360a75090&brand=17825,17826&q=laptop";
-        List<String> tgddUrls = List.of(
-                "https://www.thegioididong.com/laptop-acer?itm_source=trang-nganh-hang&itm_medium=quicklink",
-                "https://www.thegioididong.com/laptop-hp-compaq?itm_source=trang-nganh-hang&itm_medium=quicklink",
-                "https://www.thegioididong.com/laptop-dell?itm_source=trang-nganh-hang&itm_medium=quicklink"
-        );
+        List<String> tgddUrls = List.of("https://www.thegioididong.com/laptop-acer?itm_source=trang-nganh-hang&itm_medium=quicklink", "https://www.thegioididong.com/laptop-hp-compaq?itm_source=trang-nganh-hang&itm_medium=quicklink", "https://www.thegioididong.com/laptop-dell?itm_source=trang-nganh-hang&itm_medium=quicklink");
 
         List<String[]> allProducts = new ArrayList<>();
 // 4. Lặp qua từng liên kết lấy dữ liệu các sản phẩm
@@ -63,6 +58,8 @@ public class ProductCrawl {
         try {
             allProducts.addAll(crawlDataTiki(tikiApiUrl));
         } catch (IOException e) {
+            //ghi log nếu gặp lỗi lấy dữ liệu
+            logException(new logs(3, "Error", "Lỗi khi crawl dữ liệu từ Tiki", new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), "Error"));
             System.out.println("Lỗi khi crawl dữ liệu từ Tiki: " + e.getMessage());
         }
         boolean saveDataToCSV = false;
@@ -72,20 +69,18 @@ public class ProductCrawl {
         if (allProducts.isEmpty()) {
             System.out.println("Không tìm thấy dữ liệu");
             saveLog(new logs(3, "Error", "Không tìm thấy dữ liệu của sản phẩm", new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), "INFOR"));
-
-
-        }else{
+        } else {
 // 6. Lưu file csv
-             saveDataToCSV = saveDataToCSV(allProducts, configs.getSourcePath());  // Lưu dữ liệu vào CSV
-             saveDataToCSVBackup = saveDataToCSV(allProducts, configs.getBackupPath());
+            saveDataToCSV = saveDataToCSV(allProducts, configs.getSourcePath());  // Lưu dữ liệu vào CSV
+            saveDataToCSVBackup = saveDataToCSV(allProducts, configs.getBackupPath());
         }
 
-// 7. Ghi log
-        if(!saveDataToCSV){
+// 7. Ghi log khi xuất file
+        if (!saveDataToCSV) {
             saveLog(new logs(3, "Error", "Đã xảy ra lỗi khi lưu dữ liệu", new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), "Error"));
-        }else if(!saveDataToCSVBackup){
+        } else if (!saveDataToCSVBackup) {
             saveLog(new logs(3, "Error", "Đã xảy ra lỗi khi lưu file backup dữ liệu", new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), "Error"));
-        }else {
+        } else {
             saveLog(new logs(3, "Succses", "Lưu dữ liệu thành công", new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), "INFOR"));
         }
     }
@@ -104,8 +99,7 @@ public class ProductCrawl {
             // Thêm BOM để Excel nhận diện UTF-8
             writer.write('\uFEFF');
 
-            String[] header = {"id", "sku", "link-href", "name", "origin_price", "discount_percent", "sale_price",
-                    "img-src", "rating", "review_count", "brand_name", "specification", "date"};
+            String[] header = {"id", "sku", "product_name", "link-href",  "origin_price", "discount_percent", "sale_price", "img-src", "rating", "review_count", "brand_name", "specification", "date"};
 
             // Ghi header vào file CSV
             writer.write(String.join(",", header));
@@ -248,9 +242,7 @@ public class ProductCrawl {
 
                 String date = LocalDate.now().toString(); // Lấy ngày hiện tại
 
-                productList.add(new String[]{
-                        productId, productCode, detailUrl, name, oldPrice, discountPercent, currentPrice, imgUrl, rating, numReviews, brand, configDetails, date
-                });
+                productList.add(new String[]{productId, productCode,name , detailUrl,  oldPrice, discountPercent, currentPrice, imgUrl, rating, numReviews, brand, configDetails, date});
             }
         } catch (Exception e) {
             System.out.println("Lỗi khi crawl dữ liệu từ TGDD: " + e.getMessage());
@@ -315,7 +307,7 @@ public class ProductCrawl {
 
                         String date = LocalDate.now().toString(); // Lấy ngày hiện tại
 
-                        productList.add(new String[]{id, sku, productUrl, name, originalPrice, discountPercent, salePrice, imgUrl, averageRating, reviewCount, brandName, specifications, date});
+                        productList.add(new String[]{id, sku, name, productUrl,  originalPrice, discountPercent, salePrice, imgUrl, averageRating, reviewCount, brandName, specifications, date});
                     }
                 }
             } else {
@@ -336,6 +328,40 @@ public class ProductCrawl {
             preparedStatement = connection.prepareStatement(sql);
 
             preparedStatement.setString(1, log.getStatus());
+            preparedStatement.setString(2, log.getMessage());
+            preparedStatement.setTimestamp(3, log.getBeginDate());
+            preparedStatement.setTimestamp(4, log.getUpdateDate());
+            preparedStatement.setString(5, log.getLevel());
+            preparedStatement.setInt(6, log.getConfigId());
+
+
+            preparedStatement.executeUpdate();
+            System.out.println("Log ghi thành công!");
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi ghi log: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        } finally {
+            if (preparedStatement != null) {
+                try {
+                    preparedStatement.close();
+                } catch (SQLException e) {
+                    System.err.println("Lỗi khi đóng PreparedStatement: " + e.getMessage());
+                }
+            }
+        }
+        return true;
+    }
+
+    public static boolean logException(logs log) {
+        Connection connection = null;
+        String sql = "INSERT INTO logs ( status, message, begin_date, update_date, level,config_id) VALUES (?, ?, ?, ?, ?, ?)";
+
+        PreparedStatement preparedStatement = null;
+        try {
+            connection = ConnectToDatabase.getConnect();
+            preparedStatement = connection.prepareStatement(sql);
+
             preparedStatement.setString(1, log.getStatus());
             preparedStatement.setString(2, log.getMessage());
             preparedStatement.setTimestamp(3, log.getBeginDate());
