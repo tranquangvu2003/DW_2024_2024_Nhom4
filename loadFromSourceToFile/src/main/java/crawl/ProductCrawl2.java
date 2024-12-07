@@ -21,7 +21,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProductCrawl {
+public class ProductCrawl2 {
 
 // 1. Khởi tạo các biến lưu trữ dữ liệu config
 
@@ -53,17 +53,17 @@ public class ProductCrawl {
                 , "https://www.thegioididong.com/laptop-dell?itm_source=trang-nganh-hang&itm_medium=quicklink");
 
         List<String[]> allProducts = new ArrayList<>();
-// 4. Lặp qua từng liên kết lấy dữ liệu các sản phẩm
-//        for (String url : tgddUrls) {
-//            allProducts.addAll(crawlDataTGDD(url));
-//        }
 
+// 4. Lặp qua từng liên kết lấy dữ liệu các sản phẩm
         try {
             allProducts.addAll(crawlDataTiki(tikiApiUrl));
         } catch (IOException e) {
             //ghi log nếu gặp lỗi lấy dữ liệu
             logException(new logs(3, "Error", "Lỗi khi crawl dữ liệu từ Tiki", new Timestamp(System.currentTimeMillis()), new Timestamp(System.currentTimeMillis()), "Error"));
             System.out.println("Lỗi khi crawl dữ liệu từ Tiki: " + e.getMessage());
+        }
+        for (String url : tgddUrls) {
+            allProducts.addAll(crawlDataTGDD(url));
         }
         boolean saveDataToCSV = false;
         boolean saveDataToCSVBackup = false;
@@ -91,37 +91,6 @@ public class ProductCrawl {
     == --------Các phương thức hỗ trợ-----------------------------------------------==
      */
 
-    // Lưu dữ liệu vào file CSV với đường dẫn thư mục được chỉ định
-//    public static boolean saveDataToCSV(List<String[]> data, String directoryPath) {
-//        // Lấy thời gian hiện tại (bao gồm giờ, phút, giây)
-//        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
-//        String currentTime = dtf.format(LocalDateTime.now());
-//        String filePath = directoryPath + File.separator + currentTime + ".csv"; // Tạo đường dẫn đầy đủ cho file
-//
-//        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(filePath), "UTF-8")) {
-//            // Thêm BOM để Excel nhận diện UTF-8
-//            writer.write('\uFEFF');
-//
-//            String[] header = {"id", "sku", "product_name", "link-href",  "origin_price", "discount_percent", "sale_price", "img-src", "rating", "review_count", "brand_name", "specification", "date"};
-//
-//            // Ghi header vào file CSV
-//            writer.write(String.join(",", header));
-//            writer.write("\n");
-//
-//            // Ghi dữ liệu vào file CSV
-//            for (String[] rowData : data) {
-//                writer.write(String.join(",", rowData));
-//                writer.write("\n");
-//            }
-//
-//            System.out.println("Dữ liệu đã được lưu vào: " + filePath);
-//        } catch (IOException e) {
-//            System.err.println("Lỗi khi lưu dữ liệu vào CSV: " + e.getMessage());
-//            return false;
-//        }
-//        return true;
-//    }
-
     public static boolean saveDataToCSV(List<String[]> data, String directoryPath) {
         // Kiểm tra nếu dữ liệu trống, không ghi vào CSV
         if (data.isEmpty()) {
@@ -129,16 +98,22 @@ public class ProductCrawl {
             return false;
         }
 
-        // Lấy thời gian hiện tại (bao gồm giờ, phút, giây)
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
-        String currentTime = dtf.format(LocalDateTime.now());
-        String filePath = directoryPath + File.separator + currentTime + ".csv"; // Tạo đường dẫn đầy đủ cho file
+        // Lấy ngày hiện tại với định dạng ngày tháng năm (ddMMyyyy)
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMdd");
+        String currentDate = dtf.format(LocalDate.now()); // Lấy ngày hiện tại
+
+        // Tạo đường dẫn cho file với tên file theo định dạng yêu cầu
+        String filePath = directoryPath + File.separator + "dataLaptop_" + currentDate + ".csv";
 
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(filePath), "UTF-8")) {
             // Thêm BOM để Excel nhận diện UTF-8
             writer.write('\uFEFF');
 
-            String[] header = {"id", "sku", "product_name","short_description",  "price", "list_price", "origin_price", "discount", "discount_rate", "all_time_quantity_sold", "rating_average", "review_count", "inventory_status", "stock_item_qty", "stock_item_max_sale_qty", "brand_id", "brand_name", "url_key", "url_path", "specification", "date"};
+            String[] header = {"id", "sku", "product_name", "short_description", "price", "list_price",
+                    "origin_price", "discount", "discount_rate", "all_time_quantity_sold",
+                    "rating_average", "review_count", "inventory_status", "stock_item_qty",
+                    "stock_item_max_sale_qty", "brand_id", "brand_name", "url_key", "url_path",
+                    "specification", "variations", "date"};
 
             // Ghi header vào file CSV chỉ khi có dữ liệu
             writer.write(String.join(",", header));
@@ -254,35 +229,81 @@ public class ProductCrawl {
         List<String[]> productList = new ArrayList<>();
         try {
             Document doc = Jsoup.connect(url).get();
+
+            Element categoryPage = doc.selectFirst("#categoryPage");
+            String brand_id = "";
+            if (categoryPage != null) {
+                 brand_id = categoryPage.attr("data-id");
+            } else {
+                System.out.println("Thẻ categoryPage không tồn tại trên trang.");
+            }
+
+
             Elements items = doc.select("li.item");
             for (Element item : items) {
                 String productId = item.attr("data-id");
                 String sku = item.attr("data-productcode");
                 String detailUrl = "https://www.thegioididong.com" + item.select("a[href]").attr("href");
                 String name = item.select("a").attr("data-name");
-                String oldPrice = item.select("p.price-old").text();
-                String discountPercent = item.select("span.percent").text();
-                if (discountPercent.isEmpty()) {
-                    discountPercent = "0%"; // Nếu không có giảm giá, mặc định là 0%
+                String list_price = item.select("p.price-old").text().replaceAll("[^\\d]", "");
+                String original_price = list_price;
+                String discount_rate = item.select("span.percent").text();
+                String short_description = getShortDescriptionTGDD(detailUrl);
+                if (discount_rate.isEmpty()) {
+                    discount_rate = "0"; // Nếu không có giảm giá, mặc định là 0%
                 } else {
-                    discountPercent = discountPercent.replaceAll("[^\\d]", "");
-                    if (!discountPercent.isEmpty()) {
-                        discountPercent = Math.abs(Integer.parseInt(discountPercent)) + "%"; // Đảm bảo là số dương và có dấu %
+                    discount_rate = discount_rate.replaceAll("[^\\d]", "");
+                    if (!discount_rate.isEmpty()) {
+                        discount_rate = Math.abs(Integer.parseInt(discount_rate)) + ""; // Đảm bảo là số dương và có dấu %
                     }
                 }
-                String currentPrice = item.select("strong.price").text();
+                String price = item.select("strong.price").text().replaceAll("[^\\d]", "");
+                String discount = String.valueOf(
+                        Integer.parseInt(list_price.replaceAll("[^\\d]", ""))
+                                - Integer.parseInt(price.replaceAll("[^\\d]", ""))
+                );
+
                 String imgUrl = item.select("img[data-src]").attr("data-src");
+                String all_time_quantity_sold = item.select("all_time_quantity_sold").text();
                 String rating = item.select("div.vote-txt b").text();
                 rating = rating.isEmpty() ? "0" : rating;  // Nếu rating rỗng thì gán 0
 
                 String numReviews = item.select("div.vote-txt").text().replaceAll("[^\\d]", "");
                 numReviews = numReviews.isEmpty() ? "0" : numReviews;  // Nếu rating rỗng thì gán 0
-                String brand = item.select("a").attr("data-brand");
-                String configDetails = item.select("p").text().replace(",", ";");
+                String brand_name = item.select("a").attr("data-brand");
 
+                String inventory_status = "availability";
+                String stock_item_qty = item.attr("data-subgroup");
+                String stock_item_max_sale_qty = item.attr("data-maingroup");
+
+//                String brand_id = item.select("a").attr("data-brand");
+                String href = item.select("a").attr("href");
+                String url_key = href.substring(href.lastIndexOf("/") + 1); // Lấy phần cuối của URL
+                String url_path = href; // Đường dẫn đầy đủ, ví dụ: /laptop/acer-aspire..
+
+                // Lấy thông tin từ thẻ utility (màn hình, CPU, card, pin, khối lượng)
+                JSONObject specifications = new JSONObject();
+                Elements utilityItems = item.select("div.utility p");
+                for (Element utilityItem : utilityItems) {
+                    String text = utilityItem.text();
+
+                    if (text.contains("Màn hình")) {
+                        specifications.put("screen", text);
+                    } else if (text.contains("CPU")) {
+                        specifications.put("cpu", text);
+                    } else if (text.contains("Card")) {
+                        specifications.put("card", text);
+                    } else if (text.contains("Pin")) {
+                        specifications.put("battery", text);
+                    } else if (text.contains("Khối lượng")) {
+                        specifications.put("weight", text);
+                    }
+                }
+
+                String specificationsStr = specifications.toString().replace(",",";");
                 String date = LocalDate.now().toString(); // Lấy ngày hiện tại
-
-                productList.add(new String[]{productId, sku,name , detailUrl,  oldPrice, discountPercent, currentPrice, imgUrl, rating, numReviews, brand, configDetails, date});
+                String variations = "[]";
+                productList.add(new String[]{productId, sku,name , short_description, price, list_price, original_price, discount, discount_rate, all_time_quantity_sold,rating,numReviews,inventory_status,stock_item_qty ,stock_item_max_sale_qty ,brand_id, brand_name, url_key, url_path,specificationsStr, variations, date});
             }
         } catch (Exception e) {
             System.out.println("Lỗi khi crawl dữ liệu từ TGDD: " + e.getMessage());
@@ -321,11 +342,6 @@ public class ProductCrawl {
                         String originalPrice = item.optString("original_price", "N/A");
                         String discount = item.optString("discount", "N/A");
                         String discount_rate = item.optString("discount_rate", "N/A");
-                        if (discount_rate.equals("N/A") || discount_rate.isEmpty()) {
-                            discount_rate = "0%"; // Nếu không có giảm giá, mặc định là 0%
-                        } else {
-                            discount_rate = Math.abs(Integer.parseInt(discount_rate)) + "%"; // Đảm bảo là số dương và có dấu %
-                        }
                         String price = item.optString("price", "N/A");
                         String list_price = item.optString("price", "N/A");
                         String averageRating = item.optString("rating_average", "N/A");
@@ -343,10 +359,9 @@ public class ProductCrawl {
                         String inventory_status = item.optInt("availability", 0) == 1 ? "availability" : "";
 
                         JSONArray badgesNew = item.optJSONArray("badges_new");
-                        System.out.println("badgesNew"+badgesNew);
                         String stock_item_qty = "";
                         String stock_item_max_sale_qty = "";
-
+                        String variations = "[]";
                         if (badgesNew != null) {
                             for (int j = 0; j < badgesNew.length(); j++) {
                                 JSONObject badge = badgesNew.getJSONObject(j);
@@ -377,7 +392,7 @@ public class ProductCrawl {
 
                         String date = LocalDate.now().toString(); // Lấy ngày hiện tại
 
-                        productList.add(new String[]{id, sku, name, short_description, price, list_price ,originalPrice, discount, discount_rate, all_time_quantity_sold, averageRating, reviewCount, inventory_status, stock_item_qty, stock_item_max_sale_qty, brand_id, brandName,url_key,url_path, specifications, date});
+                        productList.add(new String[]{id, sku, name, short_description, price, list_price ,originalPrice, discount, discount_rate, all_time_quantity_sold, averageRating, reviewCount, inventory_status, stock_item_qty, stock_item_max_sale_qty, brand_id, brandName,url_key,url_path, specifications, variations, date });
                     }
                 }
             } else {
@@ -477,5 +492,44 @@ public class ProductCrawl {
         }
     }
 
+    public static String getShortDescriptionTGDD(String detailUrl) {
+        String shortDescription = "N/A"; // Giá trị mặc định nếu không tìm được
+        try {
+            Document doc = Jsoup.connect(detailUrl).get();
+
+            // Lấy mô tả ngắn từ các thẻ HTML của trang chi tiết
+            // Ví dụ: Kiểm tra thẻ HTML nào chứa mô tả ngắn
+            Element descriptionElement = doc.select("div.text-detail h3").first(); // Thay ".article" bằng selector chính xác
+            if (descriptionElement != null) {
+                shortDescription = descriptionElement.text().replace(",", ";").trim();
+            }
+        } catch (Exception e) {
+            System.out.println("Lỗi khi lấy mô tả từ " + detailUrl + ": " + e.getMessage());
+        }
+        return shortDescription;
+    }
+
+    public static String getSatisfiedVotes(String detailUrl) {
+        try {
+            // Kết nối đến URL và lấy HTML
+            Document document = Jsoup.connect(detailUrl).get();
+
+            // Tìm thẻ chứa thông tin số lượng khách hàng hài lòng
+            Element voteElement = document.selectFirst("div.point-satisfied-container p.point-satisfied");
+
+            // Kiểm tra nếu tìm thấy phần tử
+            if (voteElement != null) {
+                // Trích xuất văn bản và chỉ lấy số lượng từ chuỗi
+                return voteElement.text().replaceAll("[^\\d]", ""); // Lấy số từ chuỗi
+            } else {
+                // Nếu không tìm thấy phần tử
+                return "0";
+            }
+        } catch (Exception e) {
+            // Xử lý ngoại lệ (lỗi kết nối hoặc lỗi HTML)
+            System.err.println("Error: " + e.getMessage());
+            return "0";
+        }
+    }
 }
 
