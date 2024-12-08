@@ -1,10 +1,16 @@
+USE db_datawarehouse;
+
 DELIMITER $$
 
+DROP PROCEDURE IF EXISTS insert_data_to_datawarehouse;
 CREATE PROCEDURE insert_data_to_datawarehouse()
 BEGIN
     -- Khai báo biến người dùng
     DECLARE cur_date INT;
-
+    DECLARE manufacturers_inserted INT DEFAULT 0;
+    DECLARE products_inserted INT DEFAULT 0;
+    DECLARE total_inserted INT DEFAULT 0;
+		 
     -- Gán giá trị cho biến cur_date
     SELECT date_sk INTO cur_date
     FROM dim_dates
@@ -19,6 +25,8 @@ BEGIN
         SELECT 1 FROM db_datawarehouse.dim_manufacturers dm
         WHERE dm.natural_key = sp.brand_id
     );
+    -- Lấy số lượng bản ghi đã insert
+    SET manufacturers_inserted = ROW_COUNT();
 
     -- Thêm các Product mới vào 
     INSERT INTO db_datawarehouse.dim_products (natural_key, sku_no, product_name, product_description, image_url, specifications, 
@@ -31,7 +39,9 @@ BEGIN
         SELECT 1 FROM db_datawarehouse.dim_products AS dp
         WHERE dp.natural_key = sp.natural_key
     );
-	
+    -- Lấy số lượng bản ghi đã insert
+    SET products_inserted = ROW_COUNT();
+    
     SET SQL_SAFE_UPDATES = 0;
     
     -- Cập nhật các sản phẩm cũ (đánh dấu hết hiệu lực nếu có sự thay đổi)
@@ -51,8 +61,8 @@ BEGIN
             OR dp.original_price <> sp.original_price
             OR dp.stock <> sp.stock_item_qty)
     );
-
-	SET SQL_SAFE_UPDATES = 1;
+    
+    SET SQL_SAFE_UPDATES = 1;
 
     -- Thêm bản ghi mới với các thay đổi vào dim_products (SCD Type 2)
     INSERT INTO db_datawarehouse.dim_products (natural_key, sku_no, product_name, product_description, image_url, specifications, 
@@ -74,10 +84,15 @@ BEGIN
             OR dp.original_price <> sp.original_price
             OR dp.stock <> sp.stock_item_qty)
     );
+    
+    SET products_inserted = products_inserted + ROW_COUNT();
+    -- Tính tổng số bản ghi đã insert
+    SET total_inserted = manufacturers_inserted + products_inserted;
+		
+		SELECT total_inserted;
 
 END $$
 
 DELIMITER ;
 
-CALL insert_data_to_datawarehouse();
-DROP PROCEDURE insert_data_to_datawarehouse;
+-- CALL insert_data_to_datawarehouse();

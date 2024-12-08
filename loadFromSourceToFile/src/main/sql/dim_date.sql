@@ -30,7 +30,7 @@ CREATE TABLE dim_dates (
 
 -- Load data from the CSV file into the dim_dates table
 -- /var/lib/mysql-files/date_dim.csv
-LOAD DATA INFILE '/var/lib/mysql-files/date_dim.csv'
+LOAD DATA INFILE "D:\Workspace\DataWarehouse\21130445_HuynhMinh\data\date_dim.csv"
 INTO TABLE dim_dates
 FIELDS TERMINATED BY ','
 ENCLOSED BY '"'
