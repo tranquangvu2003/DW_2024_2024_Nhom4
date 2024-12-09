@@ -64,7 +64,7 @@ public class ConnectToDatabase {
     //3. kết nối đến database
     public static Connection getConnect() {
         String url = "jdbc:"+db+"://"+host+":"+port+"/"+nameDB;
-        System.out.println("url: "+url);
+
         Connection connection = null;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");

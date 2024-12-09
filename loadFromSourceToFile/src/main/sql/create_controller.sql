@@ -58,12 +58,12 @@ VALUES ('staging', 'warehouse'),
        ('datamart', NULL);
 
 INSERT INTO configs (file_name, source_path, file_location, backup_path, warehouse_procedure, version, is_active)
-VALUES ('dataLaptop_daily.csv', 'https://tiki.vn/laptop-may-vi-tinh-linh-kien/c1846',
-        'D:/Workspace/DataWarehouse/data/', 'D:/backup', 'insert_data_to_datawarehouse', 1, 1),
-       ('dataLaptop_daily.csv', 'https://tiki.vn/laptop-may-vi-tinh-linh-kien/c1846',
-        'D:/Downloads/demoProject/loadFromSourceToFile/src/main/data', 'C:/Users/HP/Desktop/backup', '', 1, 1),
-       ('dataLaptop_daily.csv', 'https://www.thegioididong.com/laptop',
-        'D:/Downloads/demoProject/loadFromSourceToFile/src/main/data', 'C:/Users/HP/Desktop/backup', '', 1, 1);
+VALUES ('dataLaptop_daily.csv', '{
+  "tikiApiUrls": [
+    "https://tiki.vn/api/v2/products?limit=40&include=advertisement,brand,specifications,price,review&aggregations=2&trackity_id=b99a8719-716f-b1cf-6233-523360a75090&brand=17825,17826&q=laptop",
+    "https://tiki.vn/api/v2/products?limit=40&include=advertisement,brand,specifications,price,review&aggregations=2&trackity_id=b99a8719-716f-b1cf-6233-523360a75090&category=5584&page=1&urlKey=laptop-gaming"
+  ]
+}','D:/Workspace/DataWarehouse/data/', 'D:/backup', 'insert_data_to_datawarehouse', 1, 1);
 
 -- process 1
 INSERT INTO process (config_id, process_at, status)

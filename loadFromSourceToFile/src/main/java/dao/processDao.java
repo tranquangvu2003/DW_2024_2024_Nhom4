@@ -36,7 +36,6 @@ public class processDao {
                 try (ResultSet generatedKeys = preparedStatement.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
                         int id = generatedKeys.getInt(1);
-                        System.out.println("ID của process vừa chèn: " + id);
                         return id;
                     } else {
                         System.err.println("Không thể lấy id của process vừa chèn.");
@@ -69,7 +68,6 @@ public class processDao {
             // Thực hiện câu lệnh
             int rowsUpdated = preparedStatement.executeUpdate();
             if (rowsUpdated > 0) {
-                System.out.println("Cập nhật trạng thái process thành công!");
                 return true;
             } else {
                 System.err.println("Không có process nào được cập nhật. Vui lòng kiểm tra ID.");

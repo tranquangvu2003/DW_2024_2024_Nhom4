@@ -22,16 +22,6 @@ public class exception {
         return false;
     }
 
-    //Exception xử lý không thể lấy mô tả từ trang the gioi di dong
-    public static boolean getShortDescriptionTGDDException(Exception e){
-        EmailService emailService = new EmailService();
-        System.err.println("Lỗi khi lấy mô tả từ thế giới di động");
-
-        String subject = "LỖI KHI LẤY MÔ TẢ TỪ LIÊN KẾT THẾ GIỚI DI ĐỘNG";
-        emailService.send(getEmail(),subject,"Lỗi khi lấy dữ liệu mô tả từ trang thế giới di động: "+ e.getMessage().toString());
-        return false;
-    }
-
     //Exception xử lý không thể lấy mô tả từ trang tiki
     public static boolean getShortDescriptionTikiException(Exception e){
         EmailService emailService = new EmailService();
@@ -62,18 +52,6 @@ public class exception {
         logException(new logs(3, "Lỗi khi duyệt qua liên kết Tiki",  new Timestamp(System.currentTimeMillis()), "Error"));
         return false;
     }
-
-    //Exception xử lý lỗi khi crawl data từ thế giới di động
-    public static boolean CrawlTgddException (Exception e){
-        EmailService emailService = new EmailService();
-        System.err.println("Lỗi khi crawl data từ thế giới di động");
-
-        String subject = "LỖI KHI KHI CRAWL DATA THẾ GIỚI DI ĐỘNG";
-        emailService.send(getEmail(),subject,"Lỗi khi crawl data từ thế giới di động: "+ e.getMessage().toString());
-        logException(new logs(3, "Lỗi khi crawl từ thế giới di động",  new Timestamp(System.currentTimeMillis()), "Error"));
-        return false;
-    }
-
 
     }
 
