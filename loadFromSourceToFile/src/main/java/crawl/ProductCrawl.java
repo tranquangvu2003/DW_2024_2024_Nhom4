@@ -25,12 +25,11 @@ import java.util.HashSet;
 import java.util.List;
 
 import static dao.configsDao.loadConfig;
-import static dao.logsDao.logException;
 import static dao.logsDao.saveLog;
 import static dao.processDao.insertProcess;
 import static dao.processDao.updateProcessStatus;
 import static database.ConnectToDatabase.getEmail;
-import static handleExceiption.exception.connectConfigException;
+import static handleExceiption.exception.*;
 
 public class ProductCrawl {
 
@@ -56,6 +55,7 @@ public class ProductCrawl {
 
         // Khởi tạo process thông báo quá trình crawl bắt đầu.
         idProcess = insertProcess(new process(3, "crawl", processDao.STATUS_READY, datetime, datetime));
+        emailService = new EmailService();
 
 
         try {
@@ -71,16 +71,15 @@ public class ProductCrawl {
             System.out.println("configsTiki: " + configsTiki);
 
         } catch (Exception e) {
- //2.1 Thực hiện thông báo gửi mail nếu không connect được config.
+ //3. Thực hiện thông báo gửi mail nếu không connect được config.
             connectConfigException(e);
-            e.printStackTrace();
             // Dừng chương trình
             System.exit(1);
         }
 
         // Thông báo quá trình crawl đang chạy.
         updateProcessStatus(idProcess,processDao.STATUS_RUNNING);
-// 3. Duyệt qua các liên kết
+// 4. Duyệt qua các liên kết
         String tikiApiUrl = "https://tiki.vn/api/v2/products?limit=40&include=advertisement,brand,specifications,price,review&aggregations=2&trackity_id=b99a8719-716f-b1cf-6233-523360a75090&brand=17825,17826&q=laptop";
         List<String> tgddUrls = List.of(
                 "https://www.thegioididong.com/laptop-acer?itm_source=trang-nganh-hang&itm_medium=quicklink"
@@ -91,13 +90,11 @@ public class ProductCrawl {
         List<String[]> productTgdd = new ArrayList<>();
 
 
-// 4. Lặp qua từng liên kết lấy dữ liệu các sản phẩm.
+// 5. Lặp qua từng liên kết lấy dữ liệu các sản phẩm.
         try {
             productTiki.addAll(crawlDataTiki(tikiApiUrl));
         } catch (IOException e) {
-            //ghi log nếu gặp exception lỗi lấy dữ liệu từ liên kết tiki.
-            logException(new logs(3, "Lỗi khi crawl dữ liệu từ Tiki",  new Timestamp(System.currentTimeMillis()), "Error"));
-            System.out.println("Lỗi khi crawl dữ liệu từ Tiki: " + e.getMessage());
+            linkTikiException(e);
         }
         for (String url : tgddUrls) {
             productTgdd.addAll(crawlDataTGDD(url));
@@ -109,23 +106,23 @@ public class ProductCrawl {
         boolean saveDataToCSVTgdd = false;
         boolean saveDataToCSVBackupTgdd = false;
 
-// 5. Kiểm tra dữ liệu có bị trống hay không.
+// 6. Kiểm tra dữ liệu có bị trống hay không.
         if (productTiki.isEmpty()) {
             System.out.println("Không tìm thấy dữ liệu");
- // 5.1 Ghi log thông báo dữ liệu bị trống.
+// 7. Ghi log thông báo dữ liệu bị trống.
             saveLog(new logs(3,  "Không tìm thấy dữ liệu của sản phẩm của Tiki", new Timestamp(System.currentTimeMillis()),  "INFOR"));
         }else{
-// 6. Lưu dữ liệu vào file csv.
-            saveDataToCSVTiki = saveDataToCSV(productTiki, configsTiki.getFileLocation(),"thegioididong_");  // Lưu dữ liệu vào CSV
-            saveDataToCSVBackupTiki = saveDataToCSV(productTiki, configsTiki.getBackupPath(),"thegioididong_");
+// 8. Lưu dữ liệu vào file csv.
+            saveDataToCSVTiki = saveDataToCSV(productTiki, configsTiki.getFileLocation(),"tiki_");  // Lưu dữ liệu vào CSV
+            saveDataToCSVBackupTiki = saveDataToCSV(productTiki, configsTiki.getBackupPath(),"tiki_");
         }
 
         if (productTgdd.isEmpty()) {
             System.out.println("Không tìm thấy dữ liệu");
             saveLog(new logs(3,  "Không tìm thấy dữ liệu của sản phẩm của Thegioididong", new Timestamp(System.currentTimeMillis()),  "INFOR"));
         }else{
-            saveDataToCSVTgdd = saveDataToCSV(productTgdd, configsTgdd.getFileLocation(),"tiki_");  // Lưu dữ liệu vào CSV
-            saveDataToCSVBackupTgdd = saveDataToCSV(productTgdd, configsTgdd.getBackupPath(),"tiki_");
+            saveDataToCSVTgdd = saveDataToCSV(productTgdd, configsTgdd.getFileLocation(),"thegioididong_");  // Lưu dữ liệu vào CSV
+            saveDataToCSVBackupTgdd = saveDataToCSV(productTgdd, configsTgdd.getBackupPath(),"thegioididong_");
         }
 
 
@@ -134,38 +131,133 @@ public class ProductCrawl {
 
         if (!saveDataToCSVTiki) {
 
- // 7.2 Gửi email thông báo lỗi crawl thất bại.
+ // 12. Gửi email thông báo lỗi crawl thất bại.
             emailService.send(getEmail(),"CRAWL DỮ LIỆU NGÀY "+ datetime + " THẤT BẠI","Dữ liệu ngày "+datetime+" đã được crawl thất bại!.");
- // 8.2 Cập nhật thông báo process crawl thất bại.
+ // 13. Cập nhật thông báo process crawl thất bại.
             updateProcessStatus(idProcess,processDao.STATUS_FAILED);
- // 9.2 Ghi log thông báo crawl thất bại.
+ // 14. Ghi log thông báo crawl thất bại.
             saveLog(new logs(3, "Đã xảy ra lỗi khi lưu dữ liệu của Tiki", new Timestamp(System.currentTimeMillis()), "error"));
         } else if (!saveDataToCSVBackupTiki) {
             saveLog(new logs(3, "Đã xảy ra lỗi khi lưu file backup dữ liệu của Tiki", new Timestamp(System.currentTimeMillis()), "error"));
         } else if (!saveDataToCSVTgdd) {
- // 7.2 Gửi email thông báo lỗi thất bại.
+ // 12. Gửi email thông báo lỗi thất bại.
             emailService.send(getEmail(),"CRAWL DỮ LIỆU NGÀY "+ datetime + " THẤT BẠI","Dữ liệu ngày "+datetime+" đã được crawl thất bại!.");
- // 8.2 Cập nhật thông báo process crawl thất bại.
+ // 13. Cập nhật thông báo process crawl thất bại.
             updateProcessStatus(idProcess,processDao.STATUS_FAILED);
- // 9.2 Ghi log thông báo crawl thất bại.
+ // 14. Ghi log thông báo crawl thất bại.
             saveLog(new logs(3, "Đã xảy ra lỗi khi lưu file backup dữ liệu", new Timestamp(System.currentTimeMillis()), "error"));
         } else if (!saveDataToCSVBackupTgdd) {
             saveLog(new logs(3, "Đã xảy ra lỗi khi lưu file backup dữ liệu", new Timestamp(System.currentTimeMillis()), "error"));
         } else {
- // 7.1 Gửi email thông báo kết quả crawl thành công.
+ // 9. Gửi email thông báo kết quả crawl thành công.
+
             emailService.send(getEmail(),"CRAWL DỮ LIỆU NGÀY "+ datetime + " THÀNH CÔNG","Dữ liệu ngày "+datetime+" đã được crawl thành công!.");
 
- // 8.1 Cập nhật thông báo process crawl thành công cho quá trình tiếp theo.
+ // 10. Cập nhật thông báo process crawl thành công cho quá trình tiếp theo.
             updateProcessStatus(idProcess,processDao.STATUS_SUCCESS);
             idProcess = insertProcess(new process(1, "stagging", processDao.STATUS_READY, datetime, datetime));
- // 9.1 Ghi log thông báo crawl thành công.
+ // 11. Ghi log thông báo crawl thành công.
             saveLog(new logs(3, "Lưu dữ liệu thành công", new Timestamp(System.currentTimeMillis()),"info"));
         }
     }
+
     /*
     == --------Các phương thức hỗ trợ-----------------------------------------------==
      */
+    // *Phương thức hỗ trợ Crawl dữ liệu từ Tiki
+    public static List<String[]> crawlDataTiki(String apiUrl) throws IOException {
+        List<String[]> productListTiki = new ArrayList<>();
+        for (int page = 1; page <= 3; page++) {
+            URL url = new URL(apiUrl + "&page=" + page);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+            conn.setRequestProperty("Accept-Language", "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7");
+            conn.setRequestProperty("Accept", "application/json");
 
+            int responseCode = conn.getResponseCode();
+            if (responseCode == 200) {
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                    StringBuilder response = new StringBuilder();
+                    String inputLine;
+                    while ((inputLine = in.readLine()) != null) {
+                        response.append(inputLine);
+                    }
+
+                    JSONObject jsonResponse = new JSONObject(response.toString());
+                    JSONArray data = jsonResponse.getJSONArray("data");
+                    for (int i = 0; i < data.length(); i++) {
+                        JSONObject item = data.getJSONObject(i);
+                        String id = String.valueOf(item.get("id"));
+                        String sku = item.optString("sku", "N/A");
+                        String productUrl = "https://tiki.vn/" + item.optString("url_path", "N/A");
+                        String name = item.optString("name", "N/A").replaceAll("[,\\n\\r]", " ").trim();
+                        String originalPrice = item.optString("original_price", "N/A");
+                        String discount = item.optString("discount", "N/A");
+                        String discount_rate = item.optString("discount_rate", "N/A");
+                        String price = item.optString("price", "N/A");
+                        String list_price = item.optString("price", "N/A");
+                        String averageRating = item.optString("rating_average", "N/A");
+                        String reviewCount = item.optString("review_count", "N/A");
+                        String brandName = item.optString("brand_name", "Unknown");
+                        String all_time_quantity_sold = item.optString("all_time_quantity_sold", "");
+                        String sellerName = item.optString("seller_name", "N/A");
+                        String origin = item.optString("origin", "N/A");
+                        String primaryCategoryName = item.optString("primary_category_name", "N/A");
+                        String short_description = getDescriptionTiki(productUrl).replaceAll("[,\\n\\r]", " ").trim();
+                        String categoryL1Name = "N/A";
+                        String brand_id = item.optString("brand_id", "");
+                        String url_key = item.optString("url_key", "");
+                        String url_path = item.optString("url_path", "");
+                        String inventory_status = item.optInt("availability", 0) == 1 ? "availability" : "";
+                        String thumbnail_urlTiki = item.optString("thumbnail_url","");
+                        JSONArray badgesNew = item.optJSONArray("badges_new");
+                        String stock_item_qty = "";
+                        String stock_item_max_sale_qty = "";
+                        String variations = "[]";
+                        String options = String.valueOf(extractOptions(name)).replaceAll("[,\\n\\r]", " ").trim();;
+
+                        if (badgesNew != null) {
+                            for (int j = 0; j < badgesNew.length(); j++) {
+                                JSONObject badge = badgesNew.getJSONObject(j);
+                                stock_item_qty = badge.optString("icon_width", "N/A");
+                                stock_item_max_sale_qty = badge.optString("icon_height", "N/A");
+                                if (!stock_item_qty.equals("N/A") || !stock_item_max_sale_qty.equals("N/A")) {
+                                    break;
+                                }
+                            }
+                        }
+
+                        JSONObject visibleInfo = item.optJSONObject("visible_impression_info");
+                        if (visibleInfo != null) {
+                            JSONObject amplitude = visibleInfo.optJSONObject("amplitude");
+                            if (amplitude != null) {
+                                categoryL1Name = amplitude.optString("category_l1_name", "N/A");
+                            }
+                        }
+
+//                        String specifications = String.format("%s; %s ;%s ;%s", sellerName, primaryCategoryName, categoryL1Name, origin).replaceAll("[\\n\\r]", " ").trim();
+                        String specifications = new JSONObject()
+                                .put("sellerName", sellerName)
+                                .put("primaryCategoryName", primaryCategoryName)
+                                .put("categoryL1Name", categoryL1Name)
+                                .put("origin", origin)
+                                .toString().replace(",", "; "); // Thay thế dấu phẩy bằng dấu chấm phẩy
+
+
+                        String date = LocalDate.now().toString(); // Lấy ngày hiện tại
+
+                        productListTiki.add(new String[]{id, sku, name, short_description, price, list_price, originalPrice, discount, discount_rate, all_time_quantity_sold, averageRating, reviewCount, inventory_status, stock_item_qty, stock_item_max_sale_qty, brand_id, brandName, url_key, url_path, thumbnail_urlTiki, options, specifications, variations, date});
+                    }
+                }
+            } else {
+                System.out.println("Failed to retrieve data from Tiki: " + responseCode);
+            }
+        }
+        return productListTiki;
+    }
+
+    // *Phương thức lưu file csv
     public static boolean saveDataToCSV(List<String[]> data, String directoryPath,String name) {
         // Kiểm tra nếu dữ liệu trống, không ghi vào CSV
         if (data.isEmpty()) {
@@ -201,15 +293,15 @@ public class ProductCrawl {
 
             System.out.println("Dữ liệu đã được lưu vào: " + filePath);
         } catch (IOException e) {
-            System.err.println("Lỗi khi lưu dữ liệu vào CSV: " + e.getMessage());
+            saveDataToCSVException(e);
             return false;
         }
         return true;
     }
 
-    //     Phương thức hỗ trợ Crawl dữ liệu từ Thế Giới Di Động
+    // *Phương thức hỗ trợ Crawl dữ liệu từ Thế Giới Di Động
     public static List<String[]> crawlDataTGDD(String url) {
-        List<String[]> productList = new ArrayList<>();
+        List<String[]> productListTGDD = new ArrayList<>();
         try {
             Document doc = Jsoup.connect(url).get();
 
@@ -268,9 +360,11 @@ public class ProductCrawl {
                 String href = item.select("a").attr("href");
                 String url_key = href.substring(href.lastIndexOf("/") + 1); // Lấy phần cuối của URL
                 String url_path = href; // Đường dẫn đầy đủ, ví dụ: /laptop/acer-aspire..
-                String thumb_url = item.select("img.lazyloaded").attr("data-src");
+                String thumb_urlTgdd = item.select("img").hasAttr("data-src") ?
+                        item.select("img").attr("data-src") :
+                        item.select("img").attr("src");
 
-                // Lấy thông tin từ thẻ utility (màn hình, CPU, card, pin, khối lượng)
+                System.out.println("thumb_urlTgdd: "+thumb_urlTgdd);
                 JSONObject specifications = new JSONObject();
                 Elements utilityItems = item.select("div.utility p");
                 for (Element utilityItem : utilityItems) {
@@ -303,107 +397,15 @@ public class ProductCrawl {
 
                 String optionStr = options.length() > 0 ? options.toString().replaceAll("[,\\n\\r]", " ").trim() : "{}";
 
-                productList.add(new String[]{productId, sku, name, short_description, price, list_price, original_price, discount, discount_rate, all_time_quantity_sold, rating, numReviews, inventory_status, stock_item_qty, stock_item_max_sale_qty, brand_id, brand_name, url_key, url_path,thumb_url,optionStr, specificationsStr, variations, date});
+                productListTGDD.add(new String[]{productId, sku, name, short_description, price, list_price, original_price, discount, discount_rate, all_time_quantity_sold, rating, numReviews, inventory_status, stock_item_qty, stock_item_max_sale_qty, brand_id, brand_name, url_key, url_path,thumb_urlTgdd,optionStr, specificationsStr, variations, date});
             }
         } catch (Exception e) {
-            System.out.println("Lỗi khi crawl dữ liệu từ TGDD: " + e.getMessage());
+            CrawlTgddException(e);
         }
-        return productList;
+        return productListTGDD;
     }
 
-//     Phương thức hỗ trợ Crawl dữ liệu từ Tiki
-    public static List<String[]> crawlDataTiki(String apiUrl) throws IOException {
-        List<String[]> productList = new ArrayList<>();
-        for (int page = 1; page <= 3; page++) {
-            URL url = new URL(apiUrl + "&page=" + page);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("User-Agent", "Mozilla/5.0");
-            conn.setRequestProperty("Accept-Language", "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7");
-            conn.setRequestProperty("Accept", "application/json");
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode == 200) {
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                    StringBuilder response = new StringBuilder();
-                    String inputLine;
-                    while ((inputLine = in.readLine()) != null) {
-                        response.append(inputLine);
-                    }
-
-                    JSONObject jsonResponse = new JSONObject(response.toString());
-                    JSONArray data = jsonResponse.getJSONArray("data");
-                    for (int i = 0; i < data.length(); i++) {
-                        JSONObject item = data.getJSONObject(i);
-                        String id = String.valueOf(item.get("id"));
-                        String sku = item.optString("sku", "N/A");
-                        String productUrl = "https://tiki.vn/" + item.optString("url_path", "N/A");
-                        String name = item.optString("name", "N/A").replaceAll("[,\\n\\r]", " ").trim();
-                        String originalPrice = item.optString("original_price", "N/A");
-                        String discount = item.optString("discount", "N/A");
-                        String discount_rate = item.optString("discount_rate", "N/A");
-                        String price = item.optString("price", "N/A");
-                        String list_price = item.optString("price", "N/A");
-                        String averageRating = item.optString("rating_average", "N/A");
-                        String reviewCount = item.optString("review_count", "N/A");
-                        String brandName = item.optString("brand_name", "Unknown");
-                        String all_time_quantity_sold = item.optString("all_time_quantity_sold", "");
-                        String sellerName = item.optString("seller_name", "N/A");
-                        String origin = item.optString("origin", "N/A");
-                        String primaryCategoryName = item.optString("primary_category_name", "N/A");
-                        String short_description = getDescriptionTiki(productUrl).replaceAll("[,\\n\\r]", " ").trim();
-                        String categoryL1Name = "N/A";
-                        String brand_id = item.optString("brand_id", "");
-                        String url_key = item.optString("url_key", "");
-                        String url_path = item.optString("url_path", "");
-                        String inventory_status = item.optInt("availability", 0) == 1 ? "availability" : "";
-                        String thumbnail_url = item.optString("thumbnail_url", "");
-                        JSONArray badgesNew = item.optJSONArray("badges_new");
-                        String stock_item_qty = "";
-                        String stock_item_max_sale_qty = "";
-                        String variations = "[]";
-                        String options = String.valueOf(extractOptions(name)).replaceAll("[,\\n\\r]", " ").trim();;
-
-                        if (badgesNew != null) {
-                            for (int j = 0; j < badgesNew.length(); j++) {
-                                JSONObject badge = badgesNew.getJSONObject(j);
-                                stock_item_qty = badge.optString("icon_width", "N/A");
-                                stock_item_max_sale_qty = badge.optString("icon_height", "N/A");
-                                if (!stock_item_qty.equals("N/A") || !stock_item_max_sale_qty.equals("N/A")) {
-                                    break;
-                                }
-                            }
-                        }
-
-                        JSONObject visibleInfo = item.optJSONObject("visible_impression_info");
-                        if (visibleInfo != null) {
-                            JSONObject amplitude = visibleInfo.optJSONObject("amplitude");
-                            if (amplitude != null) {
-                                categoryL1Name = amplitude.optString("category_l1_name", "N/A");
-                            }
-                        }
-
-//                        String specifications = String.format("%s; %s ;%s ;%s", sellerName, primaryCategoryName, categoryL1Name, origin).replaceAll("[\\n\\r]", " ").trim();
-                        String specifications = new JSONObject()
-                                .put("sellerName", sellerName)
-                                .put("primaryCategoryName", primaryCategoryName)
-                                .put("categoryL1Name", categoryL1Name)
-                                .put("origin", origin)
-                                .toString().replace(",", "; "); // Thay thế dấu phẩy bằng dấu chấm phẩy
-
-
-                        String date = LocalDate.now().toString(); // Lấy ngày hiện tại
-
-                        productList.add(new String[]{id, sku, name, short_description, price, list_price, originalPrice, discount, discount_rate, all_time_quantity_sold, averageRating, reviewCount, inventory_status, stock_item_qty, stock_item_max_sale_qty, brand_id, brandName, url_key, url_path, thumbnail_url, options, specifications, variations, date});
-                    }
-                }
-            } else {
-                System.out.println("Failed to retrieve data from Tiki: " + responseCode);
-            }
-        }
-        return productList;
-    }
-
+    // *Phương thức lấy ra mô tả từ trang tiki
     public static String getDescriptionTiki(String url) {
         try {
             // Kết nối và lấy nội dung HTML từ URL
@@ -419,10 +421,12 @@ public class ProductCrawl {
             }
 
         } catch (Exception e) {
+            getShortDescriptionTikiException(e);
             return "Lỗi xảy ra: " + e.getMessage();
         }
     }
 
+    // *Phương thức lấy ra mô tả từ trang the gioi di dong
     public static String getShortDescriptionTGDD(String detailUrl) {
         String shortDescription = "N/A"; // Giá trị mặc định nếu không tìm được
         try {
@@ -435,12 +439,13 @@ public class ProductCrawl {
                 shortDescription = descriptionElement.text().replace(",", ";").trim();
             }
         } catch (Exception e) {
-            System.out.println("Lỗi khi lấy mô tả từ " + detailUrl + ": " + e.getMessage());
+            // Exception lỗi khi lấy dữ liệu mô tả từ thế giới di động
+            getShortDescriptionTGDDException(e);
         }
         return shortDescription;
     }
 
-    // Hàm tách thông tin cấu hình từ tên sản phẩm
+    // *Hàm tách thông tin cấu hình từ tên sản phẩm
     private static JSONObject extractOptions(String name) {
         HashSet<String> configurations = new HashSet<>(); // Đảm bảo các cấu hình không bị trùng lặp
         String[] parts = name.split("[,\\|]");
