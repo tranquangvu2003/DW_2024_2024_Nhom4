@@ -12,26 +12,20 @@ public class configs {
     @Column(name = "id", nullable = false)
     private int id;
     @Basic
+    @Column(name = "file_name", nullable = true, length = 255)
+    private String fileName;
+    @Basic
     @Column(name = "source_path", nullable = true, length = 255)
     private String sourcePath;
+    @Basic
+    @Column(name = "file_location", nullable = true, length = 255)
+    private String fileLocation;
     @Basic
     @Column(name = "backup_path", nullable = true, length = 255)
     private String backupPath;
     @Basic
-    @Column(name = "staging_config", nullable = true)
-    private Integer stagingConfig;
-    @Basic
-    @Column(name = "datawarehouse_config", nullable = true)
-    private Integer datawarehouseConfig;
-    @Basic
-    @Column(name = "staging_table", nullable = true, length = 50)
-    private String stagingTable;
-    @Basic
-    @Column(name = "datawarehouse_table", nullable = true, length = 50)
-    private String datawarehouseTable;
-    @Basic
-    @Column(name = "period", nullable = true, length = -1)
-    private String period;
+    @Column(name = "warehouse_procedure", nullable = true, length = 100)
+    private String warehouseProcedure;
     @Basic
     @Column(name = "version", nullable = true, length = 50)
     private String version;
@@ -53,12 +47,28 @@ public class configs {
         this.id = id;
     }
 
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
     public String getSourcePath() {
         return sourcePath;
     }
 
     public void setSourcePath(String sourcePath) {
         this.sourcePath = sourcePath;
+    }
+
+    public String getFileLocation() {
+        return fileLocation;
+    }
+
+    public void setFileLocation(String fileLocation) {
+        this.fileLocation = fileLocation;
     }
 
     public String getBackupPath() {
@@ -69,44 +79,12 @@ public class configs {
         this.backupPath = backupPath;
     }
 
-    public Integer getStagingConfig() {
-        return stagingConfig;
+    public String getWarehouseProcedure() {
+        return warehouseProcedure;
     }
 
-    public void setStagingConfig(Integer stagingConfig) {
-        this.stagingConfig = stagingConfig;
-    }
-
-    public Integer getDatawarehouseConfig() {
-        return datawarehouseConfig;
-    }
-
-    public void setDatawarehouseConfig(Integer datawarehouseConfig) {
-        this.datawarehouseConfig = datawarehouseConfig;
-    }
-
-    public String getStagingTable() {
-        return stagingTable;
-    }
-
-    public void setStagingTable(String stagingTable) {
-        this.stagingTable = stagingTable;
-    }
-
-    public String getDatawarehouseTable() {
-        return datawarehouseTable;
-    }
-
-    public void setDatawarehouseTable(String datawarehouseTable) {
-        this.datawarehouseTable = datawarehouseTable;
-    }
-
-    public String getPeriod() {
-        return period;
-    }
-
-    public void setPeriod(String period) {
-        this.period = period;
+    public void setWarehouseProcedure(String warehouseProcedure) {
+        this.warehouseProcedure = warehouseProcedure;
     }
 
     public String getVersion() {
@@ -142,20 +120,39 @@ public class configs {
     }
 
     @Override
-    public String toString() {
-        return "configs{" +
-                "id=" + id +
-                ", sourcePath='" + sourcePath + '\'' +
-                ", backupPath='" + backupPath + '\'' +
-                ", stagingConfig=" + stagingConfig +
-                ", datawarehouseConfig=" + datawarehouseConfig +
-                ", stagingTable='" + stagingTable + '\'' +
-                ", datawarehouseTable='" + datawarehouseTable + '\'' +
-                ", period='" + period + '\'' +
-                ", version='" + version + '\'' +
-                ", isActive=" + isActive +
-                ", insertDate=" + insertDate +
-                ", updateDate=" + updateDate +
-                '}';
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        configs that = (configs) o;
+
+        if (id != that.id) return false;
+        if (fileName != null ? !fileName.equals(that.fileName) : that.fileName != null) return false;
+        if (sourcePath != null ? !sourcePath.equals(that.sourcePath) : that.sourcePath != null) return false;
+        if (fileLocation != null ? !fileLocation.equals(that.fileLocation) : that.fileLocation != null) return false;
+        if (backupPath != null ? !backupPath.equals(that.backupPath) : that.backupPath != null) return false;
+        if (warehouseProcedure != null ? !warehouseProcedure.equals(that.warehouseProcedure) : that.warehouseProcedure != null)
+            return false;
+        if (version != null ? !version.equals(that.version) : that.version != null) return false;
+        if (isActive != null ? !isActive.equals(that.isActive) : that.isActive != null) return false;
+        if (insertDate != null ? !insertDate.equals(that.insertDate) : that.insertDate != null) return false;
+        if (updateDate != null ? !updateDate.equals(that.updateDate) : that.updateDate != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = id;
+        result = 31 * result + (fileName != null ? fileName.hashCode() : 0);
+        result = 31 * result + (sourcePath != null ? sourcePath.hashCode() : 0);
+        result = 31 * result + (fileLocation != null ? fileLocation.hashCode() : 0);
+        result = 31 * result + (backupPath != null ? backupPath.hashCode() : 0);
+        result = 31 * result + (warehouseProcedure != null ? warehouseProcedure.hashCode() : 0);
+        result = 31 * result + (version != null ? version.hashCode() : 0);
+        result = 31 * result + (isActive != null ? isActive.hashCode() : 0);
+        result = 31 * result + (insertDate != null ? insertDate.hashCode() : 0);
+        result = 31 * result + (updateDate != null ? updateDate.hashCode() : 0);
+        return result;
     }
 }

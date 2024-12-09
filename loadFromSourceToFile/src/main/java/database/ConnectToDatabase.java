@@ -14,6 +14,8 @@ public class ConnectToDatabase {
     private static String nameDB;
     private static String username;
     private static String password;
+    public static String email;
+
 
     // 2. Lấy các thuộc tính của database trong file config.properties
     static {
@@ -31,10 +33,28 @@ public class ConnectToDatabase {
             nameDB = properties.getProperty("db.name");
             username = properties.getProperty("db.username");
             password = properties.getProperty("db.password");
+            email = properties.getProperty("email");
 
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static String getEmail(){
+        Properties properties = new Properties();
+
+        try (InputStream inputStream = ConnectToDatabase.class.getClassLoader().getResourceAsStream("db.properties")) {
+            if (inputStream == null) {
+                throw new IOException("File db.properties không tồn tại trong thư mục resources.");
+            }
+            properties.load(inputStream);
+
+            email = properties.getProperty("email");
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return email;
     }
 
     //Constructor

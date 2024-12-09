@@ -8,58 +8,69 @@ DROP TABLE IF EXISTS process;
 DROP TABLE IF EXISTS configs;
 DROP TABLE IF EXISTS process_flows;
 
-CREATE TABLE configs (
-		id INT AUTO_INCREMENT PRIMARY KEY,
-	  file_name VARCHAR(255),
-    source_path VARCHAR(255),
-		file_location VARCHAR(255),
-    backup_path VARCHAR(255),
-		warehouse_procedure VARCHAR(100),
-    version VARCHAR(50),
-    is_active TINYINT(1) UNSIGNED DEFAULT '0' COMMENT '0: inactive, 1: active',
-    insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE configs
+(
+    id                  INT AUTO_INCREMENT PRIMARY KEY,
+    file_name           VARCHAR(255),
+    source_path         VARCHAR(255),
+    file_location       VARCHAR(255),
+    backup_path         VARCHAR(255),
+    warehouse_procedure VARCHAR(100),
+    version             VARCHAR(50),
+    is_active           TINYINT(1) UNSIGNED DEFAULT '0' COMMENT '0: inactive, 1: active',
+    insert_date         TIMESTAMP           DEFAULT CURRENT_TIMESTAMP,
+    update_date         TIMESTAMP           DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE process (
-		id INT AUTO_INCREMENT PRIMARY KEY,
-		config_id INT,
-    process_at VARCHAR(100) COMMENT 'craw, staging, warehouse, datamart',
-    status VARCHAR(100) COMMENT 'READY, RUNNING, FAILED, SUCCESS',
-    begin_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE process
+(
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    config_id   INT,
+    process_at  VARCHAR(100) COMMENT 'craw, staging, warehouse, datamart',
+    status      VARCHAR(100) COMMENT 'READY, RUNNING, FAILED, SUCCESS',
+    begin_date  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-		
-		FOREIGN KEY (config_id) REFERENCES configs(id) ON DELETE SET NULL ON UPDATE CASCADE
+
+    FOREIGN KEY (config_id) REFERENCES configs (id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
-CREATE TABLE process_flows (
-		id INT AUTO_INCREMENT PRIMARY KEY,
-		current_stage VARCHAR(100) NOT NULL,
-		next_stage VARCHAR(100),
-		
-		UNIQUE KEY unique_flow (current_stage, next_stage)
+CREATE TABLE process_flows
+(
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    current_stage VARCHAR(100) NOT NULL,
+    next_stage    VARCHAR(100),
+
+    UNIQUE KEY unique_flow (current_stage, next_stage)
 );
 
-CREATE TABLE logs (
-		id INT AUTO_INCREMENT PRIMARY KEY,
-    process_id INT,
-    message TEXT,
-		insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    level VARCHAR(100) COMMENT 'info, warn, error, debug'
+CREATE TABLE logs
+(
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    process_id  INT,
+    message     TEXT,
+    insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    level       VARCHAR(100) COMMENT 'info, warn, error, debug'
 );
 
-INSERT INTO process_flows (current_stage, next_stage) VALUES
-('staging', 'warehouse'),
-('warehouse', 'datamart'),
-('datamart', NULL);
+INSERT INTO process_flows (current_stage, next_stage)
+VALUES ('staging', 'warehouse'),
+       ('warehouse', 'datamart'),
+       ('datamart', NULL);
 
 INSERT INTO configs (file_name, source_path, file_location, backup_path, warehouse_procedure, version, is_active)
-VALUES
-('dataLaptop_daily.csv', 'https://tiki.vn/laptop-may-vi-tinh-linh-kien/c1846', 'D:/Workspace/DataWarehouse/data/', 'D:/backup', 'insert_data_to_datawarehouse', 1, 1);
+VALUES ('dataLaptop_daily.csv', 'https://tiki.vn/laptop-may-vi-tinh-linh-kien/c1846',
+        'D:/Workspace/DataWarehouse/data/', 'D:/backup', 'insert_data_to_datawarehouse', 1, 1),
+       ('dataLaptop_daily.csv', 'https://tiki.vn/laptop-may-vi-tinh-linh-kien/c1846',
+        'D:/Downloads/demoProject/loadFromSourceToFile/src/main/data', 'C:/Users/HP/Desktop/backup', '', 1, 1),
+       ('dataLaptop_daily.csv', 'https://www.thegioididong.com/laptop',
+        'D:/Downloads/demoProject/loadFromSourceToFile/src/main/data', 'C:/Users/HP/Desktop/backup', '', 1, 1);
 
 -- process 1
-INSERT INTO process (config_id, process_at, status) VALUES
-(1, 'staging', 'READY');
+INSERT INTO process (config_id, process_at, status)
+VALUES (1, 'staging', 'READY');
+
+INSERT INTO process (config_id, process_at, status)
+VALUES (1, 'crawl', 'READY');
 
 UPDATE process
 SET status = 'SUCCESS'

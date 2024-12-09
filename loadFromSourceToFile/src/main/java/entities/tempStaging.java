@@ -5,70 +5,68 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
-import java.math.BigDecimal;
-
 @Entity
-@Table(name = "staging_products", schema = "db_staging", catalog = "")
-public class staging_product {
+@Table(name = "temp_staging", schema = "db_controller", catalog = "")
+public class tempStaging {
     @Basic
-    @Column(name = "natural_key", nullable = true, length = 255)
-    private String naturalKey;
+    @Column(name = "id", nullable = true, length = -1)
+    private String id;
     @Basic
-    @Column(name = "sku", nullable = true, length = 255)
+    @Column(name = "sku", nullable = true, length = -1)
     private String sku;
     @Basic
-    @Column(name = "product_name", nullable = true, length = 255)
+    @Column(name = "product_name", nullable = true, length = -1)
     private String productName;
     @Basic
     @Column(name = "short_description", nullable = true, length = -1)
     private String shortDescription;
     @Basic
-    @Column(name = "price", nullable = true, precision = 2)
-    private BigDecimal price;
+    @Column(name = "price", nullable = true, length = -1)
+    private String price;
     @Basic
-    @Column(name = "list_price", nullable = true, precision = 2)
-    private BigDecimal listPrice;
+    @Column(name = "list_price", nullable = true, length = -1)
+    private String listPrice;
     @Basic
-    @Column(name = "original_price", nullable = true, precision = 2)
-    private BigDecimal originalPrice;
+    @Column(name = "original_price", nullable = true, length = -1)
+    private String originalPrice;
     @Basic
-    @Column(name = "discount", nullable = true, precision = 2)
-    private BigDecimal discount;
+    @Column(name = "discount", nullable = true, length = -1)
+    private String discount;
     @Basic
-    @Column(name = "discount_rate", nullable = true, precision = 2)
-    private BigDecimal discountRate;
+    @Column(name = "discount_rate", nullable = true, length = -1)
+    private String discountRate;
     @Basic
-    @Column(name = "all_time_quantity_sold", nullable = true, precision = 0)
-    private Double allTimeQuantitySold;
+    @Column(name = "all_time_quantity_sold", nullable = true, length = -1)
+    private String allTimeQuantitySold;
     @Basic
-    @Column(name = "rating_average", nullable = true, precision = 2)
-    private BigDecimal ratingAverage;
+    @Column(name = "rating_average", nullable = true, length = -1)
+    private String ratingAverage;
     @Basic
-    @Column(name = "review_count", nullable = true)
-    private Integer reviewCount;
+    @Column(name = "review_count", nullable = true, length = -1)
+    private String reviewCount;
     @Basic
-    @Column(name = "inventory_status", nullable = true, length = 50)
+    @Column(name = "inventory_status", nullable = true, length = -1)
     private String inventoryStatus;
     @Basic
-    @Column(name = "stock_item_qty", nullable = true)
-    private Integer stockItemQty;
+    @Column(name = "stock_item_qty", nullable = true, length = -1)
+    private String stockItemQty;
     @Basic
-    @Column(name = "stock_item_max_sale_qty", nullable = true)
-    private Integer stockItemMaxSaleQty;
+    @Column(name = "stock_item_max_sale_qty", nullable = true, length = -1)
+    private String stockItemMaxSaleQty;
     @Basic
-    @Column(name = "brand_id", nullable = true)
-    private Integer brandId;
+    @Column(name = "brand_id", nullable = true, length = -1)
+    private String brandId;
     @Basic
-    @Column(name = "brand_name", nullable = true, length = 255)
+    @Column(name = "brand_name", nullable = true, length = -1)
     private String brandName;
     @Basic
-    @Column(name = "url_key", nullable = true, length = 255)
+    @Column(name = "url_key", nullable = true, length = -1)
     private String urlKey;
     @Basic
-    @Column(name = "url_path", nullable = true, length = 255)
+    @Column(name = "url_path", nullable = true, length = -1)
     private String urlPath;
     @Basic
-    @Column(name = "thumbnail_url", nullable = true, length = 255)
+    @Column(name = "thumbnail_url", nullable = true, length = -1)
     private String thumbnailUrl;
     @Basic
     @Column(name = "options", nullable = true, length = -1)
@@ -80,12 +78,12 @@ public class staging_product {
     @Column(name = "variations", nullable = true, length = -1)
     private String variations;
 
-    public String getNaturalKey() {
-        return naturalKey;
+    public String getId() {
+        return id;
     }
 
-    public void setNaturalKey(String naturalKey) {
-        this.naturalKey = naturalKey;
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getSku() {
@@ -112,67 +110,67 @@ public class staging_product {
         this.shortDescription = shortDescription;
     }
 
-    public BigDecimal getPrice() {
+    public String getPrice() {
         return price;
     }
 
-    public void setPrice(BigDecimal price) {
+    public void setPrice(String price) {
         this.price = price;
     }
 
-    public BigDecimal getListPrice() {
+    public String getListPrice() {
         return listPrice;
     }
 
-    public void setListPrice(BigDecimal listPrice) {
+    public void setListPrice(String listPrice) {
         this.listPrice = listPrice;
     }
 
-    public BigDecimal getOriginalPrice() {
+    public String getOriginalPrice() {
         return originalPrice;
     }
 
-    public void setOriginalPrice(BigDecimal originalPrice) {
+    public void setOriginalPrice(String originalPrice) {
         this.originalPrice = originalPrice;
     }
 
-    public BigDecimal getDiscount() {
+    public String getDiscount() {
         return discount;
     }
 
-    public void setDiscount(BigDecimal discount) {
+    public void setDiscount(String discount) {
         this.discount = discount;
     }
 
-    public BigDecimal getDiscountRate() {
+    public String getDiscountRate() {
         return discountRate;
     }
 
-    public void setDiscountRate(BigDecimal discountRate) {
+    public void setDiscountRate(String discountRate) {
         this.discountRate = discountRate;
     }
 
-    public Double getAllTimeQuantitySold() {
+    public String getAllTimeQuantitySold() {
         return allTimeQuantitySold;
     }
 
-    public void setAllTimeQuantitySold(Double allTimeQuantitySold) {
+    public void setAllTimeQuantitySold(String allTimeQuantitySold) {
         this.allTimeQuantitySold = allTimeQuantitySold;
     }
 
-    public BigDecimal getRatingAverage() {
+    public String getRatingAverage() {
         return ratingAverage;
     }
 
-    public void setRatingAverage(BigDecimal ratingAverage) {
+    public void setRatingAverage(String ratingAverage) {
         this.ratingAverage = ratingAverage;
     }
 
-    public Integer getReviewCount() {
+    public String getReviewCount() {
         return reviewCount;
     }
 
-    public void setReviewCount(Integer reviewCount) {
+    public void setReviewCount(String reviewCount) {
         this.reviewCount = reviewCount;
     }
 
@@ -184,27 +182,27 @@ public class staging_product {
         this.inventoryStatus = inventoryStatus;
     }
 
-    public Integer getStockItemQty() {
+    public String getStockItemQty() {
         return stockItemQty;
     }
 
-    public void setStockItemQty(Integer stockItemQty) {
+    public void setStockItemQty(String stockItemQty) {
         this.stockItemQty = stockItemQty;
     }
 
-    public Integer getStockItemMaxSaleQty() {
+    public String getStockItemMaxSaleQty() {
         return stockItemMaxSaleQty;
     }
 
-    public void setStockItemMaxSaleQty(Integer stockItemMaxSaleQty) {
+    public void setStockItemMaxSaleQty(String stockItemMaxSaleQty) {
         this.stockItemMaxSaleQty = stockItemMaxSaleQty;
     }
 
-    public Integer getBrandId() {
+    public String getBrandId() {
         return brandId;
     }
 
-    public void setBrandId(Integer brandId) {
+    public void setBrandId(String brandId) {
         this.brandId = brandId;
     }
 
@@ -269,9 +267,9 @@ public class staging_product {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        staging_product that = (staging_product) o;
+        tempStaging that = (tempStaging) o;
 
-        if (naturalKey != null ? !naturalKey.equals(that.naturalKey) : that.naturalKey != null) return false;
+        if (id != null ? !id.equals(that.id) : that.id != null) return false;
         if (sku != null ? !sku.equals(that.sku) : that.sku != null) return false;
         if (productName != null ? !productName.equals(that.productName) : that.productName != null) return false;
         if (shortDescription != null ? !shortDescription.equals(that.shortDescription) : that.shortDescription != null)
@@ -307,7 +305,7 @@ public class staging_product {
 
     @Override
     public int hashCode() {
-        int result = naturalKey != null ? naturalKey.hashCode() : 0;
+        int result = id != null ? id.hashCode() : 0;
         result = 31 * result + (sku != null ? sku.hashCode() : 0);
         result = 31 * result + (productName != null ? productName.hashCode() : 0);
         result = 31 * result + (shortDescription != null ? shortDescription.hashCode() : 0);
