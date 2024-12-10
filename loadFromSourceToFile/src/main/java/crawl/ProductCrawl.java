@@ -224,7 +224,7 @@ public class ProductCrawl {
 
                         String date = LocalDate.now().toString(); // Lấy ngày hiện tại
 
-                        productListTiki.add(new String[]{id, sku, name, short_description, price, list_price, originalPrice, discount, discount_rate, all_time_quantity_sold, averageRating, reviewCount, inventory_status, stock_item_qty, stock_item_max_sale_qty, brand_id, brandName, url_key, url_path, thumbnail_urlTiki, options, specifications, variations, date});
+                        productListTiki.add(new String[]{id, sku, name, short_description, price, list_price, originalPrice, discount, discount_rate, all_time_quantity_sold, averageRating, reviewCount, inventory_status, stock_item_qty, stock_item_max_sale_qty, brand_id, brandName, url_key, url_path, thumbnail_urlTiki, options, specifications, variations});
                     }
                 }
             } else {
@@ -258,7 +258,7 @@ public class ProductCrawl {
                     "origin_price", "discount", "discount_rate", "all_time_quantity_sold",
                     "rating_average", "review_count", "inventory_status", "stock_item_qty",
                     "stock_item_max_sale_qty", "brand_id", "brand_name", "url_key", "url_path", "thumbnail_url", "options",
-                    "specification", "variations", "date"};
+                    "specification", "variations"};
             writer.write(String.join(",", header));
             writer.write("\n");
 

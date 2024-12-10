@@ -1,0 +1,5 @@
+1. Run file crawl_data.bat
+2. Đường dẫn lưu file được cấu hình trong bảng configs với cột location_file và backup_path
+
+D:\Downloads\demoProject\loadFromSourceToFile
+D:\Downloads\demoProject\loadFromSourceToFile\src\main\resources

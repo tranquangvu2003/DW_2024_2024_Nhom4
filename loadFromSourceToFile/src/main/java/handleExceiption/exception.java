@@ -16,6 +16,7 @@ public class exception {
     public static boolean connectConfigException(Exception e){
         EmailService emailService = new EmailService();
         System.err.println("Không thể kết nối đến config");
+        logException(new logs(3, "Không thể kết nối đến config",  new Timestamp(System.currentTimeMillis()), "Error"));
 
         String subject = "KHÔNG LẤY CÁC DỮ LIỆU TRONG CONFIG";
         emailService.send(getEmail(),subject,"Lỗi khi kết nối đến config: "+ e.getMessage().toString());
@@ -26,6 +27,7 @@ public class exception {
     public static boolean getShortDescriptionTikiException(Exception e){
         EmailService emailService = new EmailService();
         System.err.println("Lỗi khi lấy mô tả từ tiki");
+        logException(new logs(3, "Lỗi khi lấy mô tả từ tiki",  new Timestamp(System.currentTimeMillis()), "Error"));
 
         String subject = "LỖI KHI LẤY MÔ TẢ TỪ LIÊN KẾT TRANG TIKI";
         emailService.send(getEmail(),subject,"Lỗi khi lấy dữ liệu mô tả từ trang tiki: "+ e.getMessage().toString());
@@ -36,6 +38,7 @@ public class exception {
     public static boolean saveDataToCSVException(Exception e){
         EmailService emailService = new EmailService();
         System.err.println("Lỗi khi lưu dữ liệu vào file csv");
+        logException(new logs(3, "Lỗi khi lưu dữ liệu vào file csv",  new Timestamp(System.currentTimeMillis()), "Error"));
 
         String subject = "LỖI KHI LƯU DỮ LIỆU VÀO FILE CSV";
         emailService.send(getEmail(),subject,"Lỗi khi lưu dữ liệu vào file csv: "+ e.getMessage().toString());
